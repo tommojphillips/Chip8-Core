@@ -7,7 +7,10 @@
 
 #include <stdint.h>
 
+#include "chip8_defines.h"
 #include "chip8.h"
+
+#ifdef CHIP8_MNEMONICS
 
 #ifdef __cplusplus
 extern "C" {
@@ -22,5 +25,6 @@ void chip8_mnem_find_next(CHIP8* chip8, uint16_t* pc);
 
 #ifdef __cplusplus
 };
+#endif
 #endif
 #endif

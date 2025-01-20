@@ -4,7 +4,11 @@
 
 #include <stdio.h>
 
+#include "chip8_defines.h"
 #include "chip8.h"
+
+#ifdef CHIP8_MNEMONICS
+
 #include "chip8_mnem.h"
 
 #define X ((opcode >> 8) & 0x0F)
@@ -414,3 +418,4 @@ int chip8_mnem(CHIP8* chip8, uint16_t pc, char* str) {
 
 	return 0;
 }
+#endif
