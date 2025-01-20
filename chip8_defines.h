@@ -11,4 +11,13 @@
  enable this to save 1792 bytes! */
 //#define CHIP8_SHRINK_VIDEO_RAM
 
+//#define CHIP8_MNEMONICS
+
+#ifdef ARDUINO
+#ifndef CHIP8_SHRINK_VIDEO_RAM
+#define CHIP8_SHRINK_VIDEO_RAM
+#endif
+#undef CHIP8_MNEMONICS
+#endif
+
 #endif
