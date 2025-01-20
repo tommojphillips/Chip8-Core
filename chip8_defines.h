@@ -11,6 +11,4 @@
  enable this to save 1792 bytes! */
 //#define CHIP8_SHRINK_VIDEO_RAM
 
-#define CYCLE_COUNT
-
 #endif

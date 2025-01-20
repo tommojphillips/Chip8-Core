@@ -23,12 +23,6 @@
 #define PC chip8->pc
 #define SP chip8->sp
 
-#ifdef CYCLE_COUNT
-#define CYCLES(x) (chip8->cycles += (x))
-#else
-#define CYCLES(x)
-#endif
-
 /* Builtin font */
 static const uint8_t chip8_font[CHIP8_FONT_BYTES] = {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -59,71 +53,61 @@ static const uint8_t chip8_font[CHIP8_FONT_BYTES] = {
 static void chip8_00E0(CHIP8* chip8) {
 	// CLS
 	chip8_zero_video_memory(chip8);
-	CYCLES(24);
+	if (chip8->quirks & CHIP8_QUIRK_DISPLAY_WAIT) {
+		chip8->draw_display = 1;
+	}
 	PC += 2;
 }
 static void chip8_00EE(CHIP8* chip8) {
 	// RET
 	PC = chip8->stack[SP];
 	SP -= 1;
-	CYCLES(10);
 	PC += 2;
 }
 static void chip8_1NNN(CHIP8* chip8) {
 	// JMP NNN
-	CYCLES(12);
 	PC = NNN;
 }
 static void chip8_2NNN(CHIP8* chip8) {
 	// CALL NNN
 	SP += 1;
 	chip8->stack[SP] = PC;
-	CYCLES(26);
 	PC = NNN;
 }
 static void chip8_3XNN(CHIP8* chip8) {
 	// SE VX, NN
 	if (VX == NN) {
-		CYCLES(4);
 		PC += 2;
 	}
-	CYCLES(10);
 	PC += 2;
 }
 static void chip8_4XNN(CHIP8* chip8) {
 	// SNE VX, NN
 	if (VX != NN) {
-		CYCLES(4);
 		PC += 2;
 	}
-	CYCLES(10);
 	PC += 2;
 }
 static void chip8_5XY0(CHIP8* chip8) {
 	// SE VX, VY
 	if (VX == VY) {
-		CYCLES(4);
 		PC += 2;
 	}
-	CYCLES(14);
 	PC += 2;
 }
 static void chip8_6XNN(CHIP8* chip8) {
 	// LD VX, NN
 	VX = NN;
-	CYCLES(6);
 	PC += 2;
 }
 static void chip8_7XNN(CHIP8* chip8) {
 	// ADD VX, NN
 	VX += NN;
-	CYCLES(10);
 	PC += 2;
 }
 static void chip8_8XY0(CHIP8* chip8) {
 	// LD VX, VY
 	VX = VY;
-	CYCLES(12);
 	PC += 2;
 }
 static void chip8_8XY1(CHIP8* chip8) {
@@ -132,7 +116,6 @@ static void chip8_8XY1(CHIP8* chip8) {
 	if (chip8->quirks & CHIP8_QUIRK_ZERO_VF_REGISTER) {
 		VF = 0;
 	}
-	CYCLES(44);
 	PC += 2;
 }
 static void chip8_8XY2(CHIP8* chip8) {
@@ -141,7 +124,6 @@ static void chip8_8XY2(CHIP8* chip8) {
 	if (chip8->quirks & CHIP8_QUIRK_ZERO_VF_REGISTER) {
 		VF = 0;
 	}
-	CYCLES(44);
 	PC += 2;
 }
 static void chip8_8XY3(CHIP8* chip8) {
@@ -150,7 +132,6 @@ static void chip8_8XY3(CHIP8* chip8) {
 	if (chip8->quirks & CHIP8_QUIRK_ZERO_VF_REGISTER) {
 		VF = 0;
 	}
-	CYCLES(44);
 	PC += 2;
 }
 static void chip8_8XY4(CHIP8* chip8) {
@@ -158,7 +139,6 @@ static void chip8_8XY4(CHIP8* chip8) {
 	uint16_t r = VX + VY;
 	VX = r & 0xFF;
 	VF = r > 0xFF ? 0x1 : 0x0;
-	CYCLES(44);
 	PC += 2;
 }
 static void chip8_8XY5(CHIP8* chip8) {
@@ -166,7 +146,6 @@ static void chip8_8XY5(CHIP8* chip8) {
 	uint8_t vf = VX < VY ? 0x0 : 0x1;
 	VX = VX - VY;
 	VF = vf;
-	CYCLES(44);
 	PC += 2;
 }
 static void chip8_8XY6(CHIP8* chip8) {
@@ -179,7 +158,6 @@ static void chip8_8XY6(CHIP8* chip8) {
 		VX = VY >> 0x1;
 	}
 	VF = vf;
-	CYCLES(44);
 	PC += 2;
 }
 static void chip8_8XY7(CHIP8* chip8) {
@@ -187,7 +165,6 @@ static void chip8_8XY7(CHIP8* chip8) {
 	uint8_t vf = VY < VX ? 0x0 : 0x1;
 	VX = VY - VX;
 	VF = vf;
-	CYCLES(44);
 	PC += 2;
 }
 static void chip8_8XYE(CHIP8* chip8) {
@@ -200,22 +177,18 @@ static void chip8_8XYE(CHIP8* chip8) {
 		VX = VY << 0x1;
 	}
 	VF = vf;
-	CYCLES(44);
 	PC += 2;
 }
 static void chip8_9XY0(CHIP8* chip8) {
 	// SNE VX, VY
 	if (VX != VY) {
 		PC += 2;
-		CYCLES(4);
 	}
-	CYCLES(14);
 	PC += 2;
 }
 static void chip8_ANNN(CHIP8* chip8) {
 	// LD I, NNN
 	I = NNN;
-	CYCLES(12);
 	PC += 2;
 }
 static void chip8_BNNN(CHIP8* chip8) {
@@ -228,14 +201,10 @@ static void chip8_BNNN(CHIP8* chip8) {
 		// JMP NNN + V0
 		PC = NNN + chip8->v[0];
 	}
-
-	CYCLES(24); // on page boundary crossed
-	//CYCLES(22); // on not page boundary crossed
 }
 static void chip8_CXNN(CHIP8* chip8) {
 	// RND VX, NN
 	VX = (chip8_random() & NN);
-	CYCLES(36);
 	PC += 2;
 }
 static void chip8_DXYN(CHIP8* chip8) {
@@ -262,34 +231,30 @@ static void chip8_DXYN(CHIP8* chip8) {
 					CHIP8_DISPLAY_TOGGLE_PX(chip8->display, i);
 				}
 			}
-
 		}
 	}
-	CYCLES(170);
+	if (chip8->quirks & CHIP8_QUIRK_DISPLAY_WAIT) {
+		chip8->draw_display = 1;
+	}
 	PC += 2;
 }
 static void chip8_EX9E(CHIP8* chip8) {
 	// SKP VX
 	if (CHIP8_KEYPAD_GET(chip8->keypad, VX) == 0x1) {
 		PC += 2;
-		CYCLES(4);
 	}
-	CYCLES(14);
 	PC += 2;
 }
 static void chip8_EXA1(CHIP8* chip8) {
 	// SKNP VX
 	if (CHIP8_KEYPAD_GET(chip8->keypad, VX) == 0x0) {
 		PC += 2;
-		CYCLES(4);
 	}
-	CYCLES(14);
 	PC += 2;
 }
 static void chip8_FX07(CHIP8* chip8) {
 	// LD VX, DT
 	VX = chip8->delay_timer;
-	CYCLES(14);
 	PC += 2;
 }
 static void chip8_FX0A(CHIP8* chip8) {
@@ -313,78 +278,62 @@ static void chip8_FX0A(CHIP8* chip8) {
 			}
 		}
 	}
-
-	//CYCLES(FXXX_CYCLES);
-	//CYCLES(18900);
 }
 static void chip8_FX15(CHIP8* chip8) {
 	// LD DT, VX
 	chip8->delay_timer = VX;
-	CYCLES(14);
 	PC += 2;
 }
 static void chip8_FX18(CHIP8* chip8) {
 	// LD ST, VX
 	chip8->sound_timer = VX;
-	CYCLES(10);
 	PC += 2;
 }
 static void chip8_FX1E(CHIP8* chip8) {
 	// ADD I, VX
 	I += VX;
-	CYCLES(16);
 	PC += 2;
 }
 static void chip8_FX29(CHIP8* chip8) {
 	// LD B, VX
 	I = VX * 5;
-	CYCLES(20);
 	PC += 2;
 }
 static void chip8_FX33(CHIP8* chip8) {
 	// LD B, VX
-	uint8_t a, b, c;
-	a = (VX % 1000) / 100;
-	b = (VX % 100) / 10;
-	c = (VX % 10);
-	WRITE_BYTE(I, a);
-	WRITE_BYTE(I + 1, b);
-	WRITE_BYTE(I + 2, c);
-	CYCLES(80+(a+b+c)*16);
+	WRITE_BYTE(I,   (VX % 1000) / 100);
+	WRITE_BYTE(I+1, (VX % 100) / 10);
+	WRITE_BYTE(I+2, (VX % 10));
 	PC += 2;
 } 
 static void chip8_FX55(CHIP8* chip8) {
 	//LD [I], VX
 	for (int i = 0; i <= X; ++i) {
-		WRITE_BYTE(I + i, chip8->v[i]);
-		CYCLES(14);
+		WRITE_BYTE(I+i, chip8->v[i]);
 	}
 
 	if (chip8->quirks & CHIP8_QUIRK_INCREMENT_I_REGISTER) {
 		I += X + 1;
 	}
 
-	CYCLES(18);
 	PC += 2;
 }
 static void chip8_FX65(CHIP8* chip8) {
 	// LD VX, [I]
 	for (int i = 0; i <= X; ++i) {
 		chip8->v[i] = READ_BYTE(I + i);
-		CYCLES(14);
 	}
 
 	if (chip8->quirks & CHIP8_QUIRK_INCREMENT_I_REGISTER) {
 		I += X + 1;
 	}
 
-	CYCLES(18);
 	PC += 2;
 }
 
 void chip8_init_cpu(CHIP8* chip8) {
 
-	chip8->quirks = 0;
+	chip8->quirks = 0; 
 	chip8_reset_cpu(chip8);
 	chip8_zero_memory(chip8);
 	chip8_zero_video_memory(chip8);
@@ -398,6 +347,7 @@ void chip8_reset_cpu(CHIP8* chip8) {
 
 	chip8->opcode = 0;
 	chip8->cpu_state = CHIP8_STATE_EXE;
+	chip8->draw_display = 0;
 
 	for (int i = 0; i < CHIP8_REGISTER_COUNT; ++i) {
 		chip8->v[i] = 0;
@@ -416,10 +366,6 @@ void chip8_reset_cpu(CHIP8* chip8) {
 	if (chip8->quirks & CHIP8_QUIRK_CLS_ON_RESET) {
 		chip8_zero_video_memory(chip8);
 	}
-
-#ifdef CYCLE_COUNT
-	chip8->cycles = 0;
-#endif
 }
 
 void chip8_zero_memory(CHIP8* chip8) {

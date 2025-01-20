@@ -63,6 +63,7 @@ typedef enum {
 	CHIP8_QUIRK_INCREMENT_I_REGISTER = 16,
 	CHIP8_QUIRK_JUMP_VX = 32,
 	CHIP8_QUIRK_DISPLAY_CLIPPING = 64,
+	CHIP8_QUIRK_DISPLAY_WAIT = 128,
 } CHIP8_QUIRKS; 
 
 /* Chip8 state structure*/
@@ -76,13 +77,14 @@ typedef struct {
 	
 	uint8_t delay_timer;
 	uint8_t sound_timer;
+	uint8_t draw_display;
+	uint8_t cpu_state;
 
 	uint8_t v[CHIP8_REGISTER_COUNT]; // general registers
 	uint16_t stack[CHIP8_STACK_SIZE]; 
 	uint8_t ram[CHIP8_MEMORY_BYTES];
 	uint8_t display[CHIP8_DISPLAY_BYTES];
 
-	CHIP8_CPU_STATE cpu_state;
 	uint32_t quirks;
 
 #ifdef CYCLE_COUNT
