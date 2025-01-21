@@ -149,7 +149,7 @@ static void chip8_8XY5(CHIP8* chip8) {
 	PC += 2;
 }
 static void chip8_8XY6(CHIP8* chip8) {
-	// SHR VX, VY
+	// SHR VX, VY XXX
 	uint8_t vf = VX & 0x1;
 	if (chip8->quirks & CHIP8_QUIRK_SHIFT_X_REGISTER) {
 		VX >>= 1;
